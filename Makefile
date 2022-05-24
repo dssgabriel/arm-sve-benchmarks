@@ -1,6 +1,6 @@
-CC = gcc
+CC = armclang
 CFLAGS = -Wall -Wextra -g -I include
-AFLAGS = -march=native
+AFLAGS = -mcpu=native+sve
 OFLAGS = -Ofast
 LDFLAGS = -lm -lnuma
 
