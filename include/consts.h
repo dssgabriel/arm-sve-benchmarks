@@ -1,0 +1,10 @@
+#pragma once
+
+#define ALIGNMENT 64
+#define DEFAULT_SIZE 8388608
+#define DEFAULT_ITER 10
+#define DEFAULT_ERROR 1e-8
+#define INTEGER_BASE 10
+#define ONE_GIB 1073741824
+#define ONE_MIB 1048576
+#define ONE_KIB 1024
