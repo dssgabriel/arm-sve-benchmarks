@@ -159,8 +159,8 @@ int config_init(config_t *config, int argc, char *argv[argc + 1])
 
 int config_print(const config_t *config)
 {
-   float readable_size;
-   char *readable_unit;
+   float readable_size = config->nb_bytes;
+   char *readable_unit = "B";
    if (config->nb_bytes > ONE_GIB) {
       readable_size /= ONE_GIB;
       readable_unit = "GiB";
@@ -172,10 +172,6 @@ int config_print(const config_t *config)
    else if (config->nb_bytes > ONE_KIB) {
       readable_size /= ONE_KIB;
       readable_unit = "KiB";
-   }
-   else {
-      readable_size = config->nb_bytes;
-      readable_unit = "B";
    }
 
    char *bench_kind = bench_kind_to_string(config->benchmark_kind);
