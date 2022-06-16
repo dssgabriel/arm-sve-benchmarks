@@ -1,57 +1,57 @@
 #include "kernels.h"
 
-void ref_init(double *restrict a, double b, size_t n)
+void compiler_init(double *restrict x, const double k, const size_t len)
 {
-   for (size_t i = 0; i < n; ++i) {
-      a[i] = b;
+   for (size_t i = 0; i < len; ++i) {
+      x[i] = k;
    }
 }
 
-void ref_copy(double *restrict a, double *restrict b, size_t n)
+void compiler_copy(double *restrict x, const double *restrict y, const size_t len)
 {
-   for (size_t i = 0; i < n; ++i) {
-      a[i] = b[i];
+   for (size_t i = 0; i < len; ++i) {
+      x[i] = y[i];
    }
 }
 
-void ref_reduc(double *restrict a, double *b, size_t n)
+void compiler_reduc(const double *restrict x, double *r, const size_t len)
 {
    double acc = 0.0;
-   for (size_t i = 0; i < n; ++i) {
-      acc += a[i];
+   for (size_t i = 0; i < len; ++i) {
+      acc += x[i];
    }
-   *b = acc;
+   *r = acc;
 }
 
-void ref_dotprod(double *restrict a, double *restrict b, double *c, size_t n)
+void compiler_dotprod(const double *restrict x, const double *restrict y, double *d,
+                      const size_t len)
 {
    double acc = 0.0;
-   for (size_t i = 0; i < n; ++i) {
-      acc += (a[i] * b[i]);
+   for (size_t i = 0; i < len; ++i) {
+      acc += (x[i] * y[i]);
    }
-   *c = acc;
+   *d = acc;
 }
 
-void ref_daxpy(double *restrict a, double *restrict b, double *restrict c,
-               size_t n)
+void compiler_gaxpy(const double a, const double *restrict x, double *restrict y,
+                    const size_t len)
 {
-   for (size_t i = 0; i < n; ++i) {
-      c[i] += (a[i] * b[i]);
-   }
-}
-
-void ref_vec_sum(double *restrict a, double *restrict b, double *restrict c,
-                 size_t n)
-{
-   for (size_t i = 0; i < n; ++i) {
-      c[i] = (a[i] + b[i]);
+   for (size_t i = 0; i < len; ++i) {
+      y[i] += x[i] * a;
    }
 }
 
-void ref_vec_scale(double *restrict a, double *restrict b, double *restrict c,
-                   size_t n)
+void compiler_vec_sum(double *restrict x, const double *restrict y,
+                      const size_t len)
 {
-   for (size_t i = 0; i < n; ++i) {
-      c[i] = (a[i] * b[i]);
+   for (size_t i = 0; i < len; ++i) {
+      x[i] += y[i];
+   }
+}
+
+void compiler_vec_scale(double *restrict x, const double k, const size_t len)
+{
+   for (size_t i = 0; i < len; ++i) {
+      x[i] *= k;
    }
 }
