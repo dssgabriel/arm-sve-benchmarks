@@ -1,6 +1,7 @@
+#include "drivers.h"
+
 #include "config.h"
 #include "consts.h"
-#include "drivers.h"
 #include "kernels.h"
 #include "logs.h"
 
@@ -10,372 +11,370 @@
 #include <time.h>
 
 typedef struct vectors_s {
-   double *ref_vec;
-   double *asm_vec;
-   size_t nb_elem;
+   double *compiler_vec;
+   double *assembly_vec;
+   size_t len;
 } vectors_t;
 
-vectors_t init_vectors(size_t size)
+vectors_t init_vectors(const size_t size)
 {
-   if (!(size % sizeof(double) == 0)) {
-      log_warn(
-         "size is not a multiple of %d, using the nearest multiple instead.");
-      size -= (size % sizeof(double));
-   }
-
    vectors_t vecs = {
-      .ref_vec = aligned_alloc(ALIGNMENT, size),
-      .asm_vec = aligned_alloc(ALIGNMENT, size),
-      .nb_elem = size / sizeof(double),
+      .compiler_vec = aligned_alloc(ALIGNMENT, size),
+      .assembly_vec = aligned_alloc(ALIGNMENT, size),
+      .len = size / sizeof(double),
    };
-   if (!vecs.ref_vec || !vecs.asm_vec) {
-      log_error("failed to allocate arrays.\n");
+   if (!vecs.compiler_vec || !vecs.assembly_vec) {
+      log_error("failed to allocate vectors.\n");
       exit(EXIT_FAILURE);
    }
 
-   for (size_t i = 0; i < vecs.nb_elem; ++i) {
-      const double rand_val =
-         ((double)(rand() % vecs.nb_elem) / 100.0) - 10000.0;
-      vecs.ref_vec[i] = rand_val;
-      vecs.asm_vec[i] = rand_val;
+   for (size_t i = 0; i < vecs.len; ++i) {
+      const double rand_val = ((double)(rand() % RAND_MAX));
+      vecs.compiler_vec[i] = rand_val;
+      vecs.assembly_vec[i] = rand_val;
    }
 
    return vecs;
 }
 
-// int driver_generic(config_t* config, size_t nb_arrays, void (*ref_fn));
+void destroy_vectors(vectors_t *vecs)
+{
+   if (!vecs) {
+      return;
+   }
+   free(vecs->compiler_vec);
+   free(vecs->assembly_vec);
+}
+
+double compute_avg_latency(const struct timespec start,
+                           const struct timespec end,
+                           const size_t nb_repetitions)
+{
+   return ((end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)) /
+          nb_repetitions;
+}
 
 int driver_init(config_t *config)
 {
    srand(0);
-   vectors_t a = init_vectors(config->nb_bytes);
-   const double value = (double)(rand() % a.nb_elem) / 100.0 - 10000.0;
+   vectors_t x = init_vectors(config->nb_bytes);
+   const double value = (double)(rand() % RAND_MAX);
    struct timespec start, end;
 
-   // Run reference benchmark
+   // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      ref_init(a.ref_vec, value, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      compiler_init(x.compiler_vec, value, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->ref_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->compiler_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      asm_init(a.asm_vec, value, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      assembly_init(x.assembly_vec, value, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->asm_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->assembly_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
-   config->speedup = config->ref_latency / config->asm_latency;
+   // Compute speedup
+   config->speedup = config->compiler_latency / config->assembly_latency;
 
    // Compute error
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
       config->computed_error +=
-         fabs((a.ref_vec[i] - a.asm_vec[i]) / a.ref_vec[i]);
+         fabs((x.compiler_vec[i] - x.assembly_vec[i]) / x.compiler_vec[i]);
    }
-   config->computed_error /= config->nb_iterations;
-   if (config->computed_error > config->error_tolerance)
+   config->computed_error /= config->nb_repetitions;
+   if (config->computed_error > config->error_tolerance) {
       config->passed = false;
-   else
+   }
+   else {
       config->passed = true;
+   }
 
-   free(a.ref_vec);
-   free(a.asm_vec);
+   destroy_vectors(&x);
    return 0;
 }
 
 int driver_copy(config_t *config)
 {
    srand(0);
-   vectors_t a = init_vectors(config->nb_bytes);
-   vectors_t b = init_vectors(config->nb_bytes);
+   vectors_t x = init_vectors(config->nb_bytes);
+   vectors_t y = init_vectors(config->nb_bytes);
    struct timespec start, end;
 
-   // Run reference benchmark
+   // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      ref_copy(a.ref_vec, b.ref_vec, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      compiler_copy(x.compiler_vec, y.compiler_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->ref_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->compiler_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      asm_copy(a.asm_vec, b.asm_vec, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      assembly_copy(x.assembly_vec, y.assembly_vec, y.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->asm_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->assembly_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
-   config->speedup = config->ref_latency / config->asm_latency;
+   // Compute speedup
+   config->speedup = config->compiler_latency / config->assembly_latency;
 
    // Compute error
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
       config->computed_error +=
-         fabs((a.ref_vec[i] - a.asm_vec[i]) / a.ref_vec[i]);
+         fabs((x.compiler_vec[i] - x.assembly_vec[i]) / x.compiler_vec[i]);
    }
-   config->computed_error /= config->nb_iterations;
-   if (config->computed_error > config->error_tolerance)
+   config->computed_error /= config->nb_repetitions;
+   if (config->computed_error > config->error_tolerance) {
       config->passed = false;
-   else
+   }
+   else {
       config->passed = true;
+   }
 
-   free(a.ref_vec);
-   free(a.asm_vec);
-   free(b.ref_vec);
-   free(b.asm_vec);
+   destroy_vectors(&x);
+   destroy_vectors(&y);
    return 0;
 }
 
 int driver_reduc(config_t *config)
 {
    srand(0);
-   vectors_t a = init_vectors(config->nb_bytes);
-   double value;
+   vectors_t x = init_vectors(config->nb_bytes);
+   double compiler_results[config->nb_repetitions];
+   double assembly_results[config->nb_repetitions];
    struct timespec start, end;
 
-   // Run reference benchmark
+   // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      ref_reduc(a.ref_vec, &value, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      compiler_reduc(x.compiler_vec, compiler_results + i, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->ref_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->compiler_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      asm_reduc(a.asm_vec, &value, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      assembly_reduc(x.assembly_vec, assembly_results + i, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->asm_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->assembly_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
-   config->speedup = config->ref_latency / config->asm_latency;
+   // Compute speedup
+   config->speedup = config->compiler_latency / config->assembly_latency;
 
    // Compute error
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      config->computed_error +=
-         fabs((a.ref_vec[i] - a.asm_vec[i]) / a.ref_vec[i]);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      config->computed_error += fabs(
+         (compiler_results[i] - assembly_results[i]) / compiler_results[i]);
    }
-   config->computed_error /= config->nb_iterations;
-   if (config->computed_error > config->error_tolerance)
+   config->computed_error /= config->nb_repetitions;
+   if (config->computed_error > config->error_tolerance) {
       config->passed = false;
-   else
+   }
+   else {
       config->passed = true;
+   }
 
-   free(a.ref_vec);
-   free(a.asm_vec);
+   destroy_vectors(&x);
    return 0;
 }
 
 int driver_dotprod(config_t *config)
 {
    srand(0);
-   vectors_t a = init_vectors(config->nb_bytes);
-   vectors_t b = init_vectors(config->nb_bytes);
-   double value;
+   vectors_t x = init_vectors(config->nb_bytes);
+   vectors_t y = init_vectors(config->nb_bytes);
+   double compiler_results[config->nb_repetitions];
+   double assembly_results[config->nb_repetitions];
    struct timespec start, end;
 
-   // Run reference benchmark
+   // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      ref_dotprod(a.ref_vec, b.ref_vec, &value, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      compiler_dotprod(x.compiler_vec, y.compiler_vec, compiler_results + i,
+                       x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->ref_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->compiler_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      asm_dotprod(a.asm_vec, b.asm_vec, &value, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      assembly_dotprod(x.assembly_vec, y.assembly_vec, assembly_results + i,
+                       y.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->asm_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->assembly_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
-   config->speedup = config->ref_latency / config->asm_latency;
+   // Compute speedup
+   config->speedup = config->compiler_latency / config->assembly_latency;
 
    // Compute error
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      config->computed_error +=
-         fabs((a.ref_vec[i] - a.asm_vec[i]) / a.ref_vec[i]);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      config->computed_error += fabs(
+         (compiler_results[i] - assembly_results[i]) / compiler_results[i]);
    }
-   config->computed_error /= config->nb_iterations;
-   if (config->computed_error > config->error_tolerance)
+   config->computed_error /= config->nb_repetitions;
+   if (config->computed_error > config->error_tolerance) {
       config->passed = false;
-   else
+   }
+   else {
       config->passed = true;
+   }
 
-   free(a.ref_vec);
-   free(a.asm_vec);
-   free(b.ref_vec);
-   free(b.asm_vec);
+   destroy_vectors(&x);
+   destroy_vectors(&y);
    return 0;
 }
 
-int driver_daxpy(config_t *config)
+int driver_gaxpy(config_t *config)
 {
    srand(0);
-   vectors_t a = init_vectors(config->nb_bytes);
-   vectors_t b = init_vectors(config->nb_bytes);
-   vectors_t c = init_vectors(config->nb_bytes);
+   const double a = (double)(rand() % RAND_MAX);
+   vectors_t x = init_vectors(config->nb_bytes);
+   vectors_t y = init_vectors(config->nb_bytes);
    struct timespec start, end;
 
-   // Run reference benchmark
+   // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      ref_daxpy(a.ref_vec, b.ref_vec, c.ref_vec, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      compiler_gaxpy(a, x.compiler_vec, y.compiler_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->ref_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->compiler_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      asm_daxpy(a.asm_vec, b.asm_vec, c.asm_vec, a.nb_elem);
+   for (size_t i = 0; i < config->compiler_latency; ++i) {
+      assembly_gaxpy(a, x.assembly_vec, y.assembly_vec, y.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->asm_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->assembly_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
-   config->speedup = config->ref_latency / config->asm_latency;
+   // Compute speedup
+   config->speedup = config->compiler_latency / config->assembly_latency;
 
    // Compute error
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
       config->computed_error +=
-         fabs((a.ref_vec[i] - a.asm_vec[i]) / a.ref_vec[i]);
+         fabs((y.compiler_vec[i] - y.assembly_vec[i]) / y.compiler_vec[i]);
    }
-   config->computed_error /= config->nb_iterations;
-   if (config->computed_error > config->error_tolerance)
+   config->computed_error /= config->nb_repetitions;
+   if (config->computed_error > config->error_tolerance) {
       config->passed = false;
-   else
+   }
+   else {
       config->passed = true;
+   }
 
-   free(a.ref_vec);
-   free(a.asm_vec);
-   free(b.ref_vec);
-   free(b.asm_vec);
-   free(c.ref_vec);
-   free(c.asm_vec);
+   destroy_vectors(&x);
+   destroy_vectors(&y);
    return 0;
 }
 
 int driver_vec_sum(config_t *config)
 {
    srand(0);
-   vectors_t a = init_vectors(config->nb_bytes);
-   vectors_t b = init_vectors(config->nb_bytes);
-   vectors_t c = init_vectors(config->nb_bytes);
+   vectors_t x = init_vectors(config->nb_bytes);
+   vectors_t y = init_vectors(config->nb_bytes);
    struct timespec start, end;
 
-   // Run reference benchmark
+   // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      ref_vec_sum(a.ref_vec, b.ref_vec, c.ref_vec, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      compiler_vec_sum(x.compiler_vec, y.compiler_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->ref_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->compiler_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      asm_vec_sum(a.asm_vec, b.asm_vec, c.asm_vec, a.nb_elem);
+   for (size_t i = 0; i < config->compiler_latency; ++i) {
+      assembly_vec_sum(x.assembly_vec, y.assembly_vec, y.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->asm_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->assembly_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
-   config->speedup = config->ref_latency / config->asm_latency;
+   // Compute speedup
+   config->speedup = config->compiler_latency / config->assembly_latency;
 
    // Compute error
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
       config->computed_error +=
-         fabs((a.ref_vec[i] - a.asm_vec[i]) / a.ref_vec[i]);
+         fabs((x.compiler_vec[i] - x.assembly_vec[i]) / x.compiler_vec[i]);
    }
-   config->computed_error /= config->nb_iterations;
-   if (config->computed_error > config->error_tolerance)
+   config->computed_error /= config->nb_repetitions;
+   if (config->computed_error > config->error_tolerance) {
       config->passed = false;
-   else
+   }
+   else {
       config->passed = true;
+   }
 
-   free(a.ref_vec);
-   free(a.asm_vec);
-   free(b.ref_vec);
-   free(b.asm_vec);
-   free(c.ref_vec);
-   free(c.asm_vec);
+   destroy_vectors(&x);
+   destroy_vectors(&y);
    return 0;
 }
 
 int driver_vec_scale(config_t *config)
 {
    srand(0);
-   vectors_t a = init_vectors(config->nb_bytes);
-   vectors_t b = init_vectors(config->nb_bytes);
-   vectors_t c = init_vectors(config->nb_bytes);
+   const double k = (double)(rand() % RAND_MAX);
+   vectors_t x = init_vectors(config->nb_bytes);
    struct timespec start, end;
 
-   // Run reference benchmark
+   // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      ref_vec_scale(a.ref_vec, b.ref_vec, c.ref_vec, a.nb_elem);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      compiler_vec_scale(x.compiler_vec, k, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->ref_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->compiler_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
-      asm_vec_scale(a.asm_vec, b.asm_vec, c.asm_vec, a.nb_elem);
+   for (size_t i = 0; i < config->compiler_latency; ++i) {
+      assembly_vec_scale(x.assembly_vec, k, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->asm_latency =
-      (end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9) /
-      config->nb_iterations;
+   config->assembly_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
 
-   config->speedup = config->ref_latency / config->asm_latency;
+   // Compute speedup
+   config->speedup = config->compiler_latency / config->assembly_latency;
 
    // Compute error
-   for (size_t i = 0; i < config->nb_iterations; ++i) {
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
       config->computed_error +=
-         fabs((a.ref_vec[i] - a.asm_vec[i]) / a.ref_vec[i]);
+         fabs((x.compiler_vec[i] - x.assembly_vec[i]) / x.compiler_vec[i]);
    }
-   config->computed_error /= config->nb_iterations;
-   if (config->computed_error > config->error_tolerance)
+   config->computed_error /= config->nb_repetitions;
+   if (config->computed_error > config->error_tolerance) {
       config->passed = false;
-   else
+   }
+   else {
       config->passed = true;
+   }
 
-   free(a.ref_vec);
-   free(a.asm_vec);
-   free(b.ref_vec);
-   free(b.asm_vec);
-   free(c.ref_vec);
-   free(c.asm_vec);
+   destroy_vectors(&x);
    return 0;
 }
