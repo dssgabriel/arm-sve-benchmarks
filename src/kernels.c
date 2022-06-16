@@ -34,9 +34,8 @@ void compiler_dotprod(const double *restrict x, const double *restrict y,
    *d = acc;
 }
 
-void compiler_gaxpy(const double a, const double *restrict x,
-                    const double *restrict y, double *restrict z,
-                    const size_t len)
+void compiler_gaxpy(const double *restrict x, const double *restrict y,
+                    double *restrict z, const double a, const size_t len)
 {
    for (size_t i = 0; i < len; ++i) {
       z[i] = a * x[i] + y[i];

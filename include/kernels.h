@@ -15,9 +15,8 @@ void compiler_reduc(const double *restrict x, double *r, const size_t len);
 void compiler_dotprod(const double *restrict x, const double *restrict y,
                       double *d, const size_t len);
 
-void compiler_gaxpy(const double a, const double *restrict x,
-                    const double *restrict y, double *restrict z,
-                    const size_t len);
+void compiler_gaxpy(const double *restrict x, const double *restrict y,
+                    double *restrict z, const double a, const size_t len);
 
 void compiler_vec_sum(const double *restrict x, const double *restrict y,
                       double *restrict z, const size_t len);
@@ -38,9 +37,8 @@ void assembly_reduc(const double *restrict x, double *r, const size_t len);
 void assembly_dotprod(const double *restrict x, const double *restrict y,
                       double *d, const size_t len);
 
-void assembly_gaxpy(const double a, const double *restrict x,
-                    const double *restrict y, double *restrict z,
-                    const size_t len);
+void assembly_gaxpy(const double *restrict x, const double *restrict y, 
+                    double *restrict z, const double a, const size_t len);
 
 void assembly_vec_sum(const double *restrict x, const double *restrict y,
                       double *restrict z, const size_t len);
