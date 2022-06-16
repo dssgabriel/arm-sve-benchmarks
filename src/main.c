@@ -37,7 +37,7 @@ int main(int argc, char *argv[argc + 1])
          driver_dotprod(&config);
          break;
       case BENCH_KIND_GAXPY:
-         driver_daxpy(&config);
+         driver_gaxpy(&config);
          break;
       case BENCH_KIND_SUM:
          driver_vec_sum(&config);
