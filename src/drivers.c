@@ -247,12 +247,13 @@ int driver_gaxpy(config_t *config)
    const double a = (double)(rand() % RAND_MAX);
    vectors_t x = init_vectors(config->nb_bytes);
    vectors_t y = init_vectors(config->nb_bytes);
+   vectors_t z = init_vectors(config->nb_bytes);
    struct timespec start, end;
 
    // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
    for (size_t i = 0; i < config->nb_repetitions; ++i) {
-      compiler_gaxpy(a, x.compiler_vec, y.compiler_vec, x.len);
+      compiler_gaxpy(a, x.compiler_vec, y.compiler_vec, z.compiler_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
    config->compiler_latency =
@@ -261,7 +262,7 @@ int driver_gaxpy(config_t *config)
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
    for (size_t i = 0; i < config->compiler_latency; ++i) {
-      assembly_gaxpy(a, x.assembly_vec, y.assembly_vec, y.len);
+      assembly_gaxpy(a, x.assembly_vec, y.assembly_vec, z.assembly_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
    config->assembly_latency =
@@ -273,7 +274,7 @@ int driver_gaxpy(config_t *config)
    // Compute error
    for (size_t i = 0; i < config->nb_repetitions; ++i) {
       config->computed_error +=
-         fabs((y.compiler_vec[i] - y.assembly_vec[i]) / y.compiler_vec[i]);
+         fabs((z.compiler_vec[i] - z.assembly_vec[i]) / z.compiler_vec[i]);
    }
    config->computed_error /= config->nb_repetitions;
    if (config->computed_error > config->error_tolerance) {
@@ -285,6 +286,7 @@ int driver_gaxpy(config_t *config)
 
    destroy_vectors(&x);
    destroy_vectors(&y);
+   destroy_vectors(&z);
    return 0;
 }
 
@@ -293,12 +295,13 @@ int driver_vec_sum(config_t *config)
    srand(0);
    vectors_t x = init_vectors(config->nb_bytes);
    vectors_t y = init_vectors(config->nb_bytes);
+   vectors_t z = init_vectors(config->nb_bytes);
    struct timespec start, end;
 
    // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
    for (size_t i = 0; i < config->nb_repetitions; ++i) {
-      compiler_vec_sum(x.compiler_vec, y.compiler_vec, x.len);
+      compiler_vec_sum(x.compiler_vec, y.compiler_vec, z.compiler_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
    config->compiler_latency =
@@ -307,7 +310,55 @@ int driver_vec_sum(config_t *config)
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
    for (size_t i = 0; i < config->compiler_latency; ++i) {
-      assembly_vec_sum(x.assembly_vec, y.assembly_vec, y.len);
+      assembly_vec_sum(x.assembly_vec, y.assembly_vec, z.assembly_vec, x.len);
+   }
+   clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+   config->assembly_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
+
+   // Compute speedup
+   config->speedup = config->compiler_latency / config->assembly_latency;
+
+   // Compute error
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      config->computed_error +=
+         fabs((z.compiler_vec[i] - z.assembly_vec[i]) / z.compiler_vec[i]);
+   }
+   config->computed_error /= config->nb_repetitions;
+   if (config->computed_error > config->error_tolerance) {
+      config->passed = false;
+   }
+   else {
+      config->passed = true;
+   }
+
+   destroy_vectors(&x);
+   destroy_vectors(&y);
+   destroy_vectors(&z);
+   return 0;
+}
+
+int driver_vec_scale(config_t *config)
+{
+   srand(0);
+   const double k = (double)(rand() % RAND_MAX);
+   vectors_t x = init_vectors(config->nb_bytes);
+   vectors_t y = init_vectors(config->nb_bytes);
+   struct timespec start, end;
+
+   // Run compiler benchmark
+   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
+      compiler_vec_scale(k, x.compiler_vec, y.compiler_vec, x.len);
+   }
+   clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+   config->compiler_latency =
+      compute_avg_latency(start, end, config->nb_repetitions);
+
+   // Run assembly benchmark
+   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+   for (size_t i = 0; i < config->compiler_latency; ++i) {
+      assembly_vec_scale(k, x.assembly_vec, y.assembly_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
    config->assembly_latency =
@@ -331,50 +382,5 @@ int driver_vec_sum(config_t *config)
 
    destroy_vectors(&x);
    destroy_vectors(&y);
-   return 0;
-}
-
-int driver_vec_scale(config_t *config)
-{
-   srand(0);
-   const double k = (double)(rand() % RAND_MAX);
-   vectors_t x = init_vectors(config->nb_bytes);
-   struct timespec start, end;
-
-   // Run compiler benchmark
-   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->nb_repetitions; ++i) {
-      compiler_vec_scale(x.compiler_vec, k, x.len);
-   }
-   clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->compiler_latency =
-      compute_avg_latency(start, end, config->nb_repetitions);
-
-   // Run assembly benchmark
-   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->compiler_latency; ++i) {
-      assembly_vec_scale(x.assembly_vec, k, x.len);
-   }
-   clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-   config->assembly_latency =
-      compute_avg_latency(start, end, config->nb_repetitions);
-
-   // Compute speedup
-   config->speedup = config->compiler_latency / config->assembly_latency;
-
-   // Compute error
-   for (size_t i = 0; i < config->nb_repetitions; ++i) {
-      config->computed_error +=
-         fabs((x.compiler_vec[i] - x.assembly_vec[i]) / x.compiler_vec[i]);
-   }
-   config->computed_error /= config->nb_repetitions;
-   if (config->computed_error > config->error_tolerance) {
-      config->passed = false;
-   }
-   else {
-      config->passed = true;
-   }
-
-   destroy_vectors(&x);
    return 0;
 }
