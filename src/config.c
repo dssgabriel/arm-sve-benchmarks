@@ -1,4 +1,5 @@
 #include "config.h"
+
 #include "consts.h"
 #include "logs.h"
 
@@ -8,23 +9,45 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *bench_kind_to_string(bench_kind_t kind)
+void print_help(const char *bin)
+{
+   printf("\033[1mUsage: %s <ARGS> [OPTIONS]\033[0m\n"
+          "\n\033[1mArguments:\033[0m\n"
+          "\t-k <BENCH_KIND>       Runs a benchmark where <BENCH_KIND> is "
+          "one of the following:\n"
+          "\t                       - init;\n"
+          "\t                       - copy;\n"
+          "\t                       - reduc;\n"
+          "\t                       - dotprod;\n"
+          "\t                       - GAXPY;\n"
+          "\t                       - vec_sum;\n"
+          "\t                       - vec_scale.\n"
+          "\n\033[1mOptions:\033[0m\n"
+          "\t-s [SIZE]             Vector size in bytes (default: %dB).\n"
+          "\t-r [NB_REP]           Number of repetitions (default: %d).\n"
+          "\t-e [ERROR_TOLERANCE]  Error tolerance (default: %e).\n"
+          "\t-v                    Prints the version number.\n"
+          "\t-h                    Prints this help.\n\n",
+          bin, DEFAULT_SIZE, DEFAULT_REP, DEFAULT_ERROR);
+}
+
+char *bench_kind_to_string(const bench_kind_t kind)
 {
    switch (kind) {
       case BENCH_KIND_INIT:
-         return "INIT";
+         return "init";
       case BENCH_KIND_COPY:
-         return "COPY";
+         return "copy";
       case BENCH_KIND_REDUC:
-         return "REDUC";
+         return "reduc";
       case BENCH_KIND_DOTPROD:
-         return "DOTPROD";
-      case BENCH_KIND_DAXPY:
-         return "DAXPY";
+         return "dotprod";
+      case BENCH_KIND_GAXPY:
+         return "gaxpy";
       case BENCH_KIND_SUM:
-         return "VECTOR SUM";
+         return "vec_sum";
       case BENCH_KIND_SCALE:
-         return "VECTOR SCALE";
+         return "vec_scale";
       default:
          return "???";
    }
@@ -35,7 +58,7 @@ int config_init(config_t *config, int argc, char *argv[argc + 1])
    bool is_kind_set = false;
 
    int opt;
-   while ((opt = getopt(argc, argv, "e:i:k:s:vh")) != -1) {
+   while ((opt = getopt(argc, argv, "e:r:k:s:vh")) != -1) {
       switch (opt) {
          case 'k': {
             if (!strcmp(optarg, "init")) {
@@ -50,8 +73,8 @@ int config_init(config_t *config, int argc, char *argv[argc + 1])
             else if (!strcmp(optarg, "dotprod")) {
                config->benchmark_kind = BENCH_KIND_DOTPROD;
             }
-            else if (!strcmp(optarg, "daxpy")) {
-               config->benchmark_kind = BENCH_KIND_DAXPY;
+            else if (!strcmp(optarg, "gaxpy")) {
+               config->benchmark_kind = BENCH_KIND_GAXPY;
             }
             else if (!strcmp(optarg, "vec_sum")) {
                config->benchmark_kind = BENCH_KIND_SUM;
@@ -60,8 +83,8 @@ int config_init(config_t *config, int argc, char *argv[argc + 1])
                config->benchmark_kind = BENCH_KIND_SCALE;
             }
             else {
-               log_error("unkown benchmark kind %s. See help for available "
-                         "benchmarks.",
+               log_error("unkown benchmark kind `%s`. "
+                         "See help for available benchmarks.",
                          optarg);
                exit(EXIT_FAILURE);
             }
@@ -76,22 +99,23 @@ int config_init(config_t *config, int argc, char *argv[argc + 1])
             }
             else {
                config->nb_bytes = DEFAULT_SIZE;
-               log_warn("unable to parse %s, using default vector size (%zu).",
+               log_warn("unable to parse `%s`, "
+                        "using default vector size (%zu).",
                         optarg, DEFAULT_SIZE);
             }
             break;
          }
-         case 'i': {
+         case 'r': {
             char *endptr;
-            size_t iter = strtoul(optarg, &endptr, INTEGER_BASE);
-            if (iter) {
-               config->nb_iterations = iter;
+            size_t rep = strtoul(optarg, &endptr, INTEGER_BASE);
+            if (rep) {
+               config->nb_repetitions = rep;
             }
             else {
-               config->nb_iterations = DEFAULT_ITER;
-               log_warn("unable to parse %s, using default number of "
-                        "iterations (%zu).",
-                        optarg, DEFAULT_ITER);
+               config->nb_repetitions = DEFAULT_REP;
+               log_warn("unable to parse `%s`, "
+                        "using default number of repetitions (%zu).",
+                        optarg, DEFAULT_REP);
             }
             break;
          }
@@ -103,37 +127,23 @@ int config_init(config_t *config, int argc, char *argv[argc + 1])
             }
             else {
                config->error_tolerance = DEFAULT_ERROR;
-               log_warn(
-                  "unable to parse %s, using default error tolerance (%e).",
-                  optarg, DEFAULT_ERROR);
+               log_warn("unable to parse `%s`, "
+                        "using default error tolerance (%e).",
+                        optarg, DEFAULT_ERROR);
             }
             break;
          }
          case 'h': {
-            printf(
-               "\033[1mUsage: %s <ARGS> [OPTIONS]\033[0m\n"
-               "\n\033[1mArguments:\033[0m\n"
-               "\t-k <BENCH_KIND>       Runs one of the following benchmarks:\n"
-               "\t                        INIT, COPY, REDUC, DOTPROD, DAXPY, "
-               "VECTOR SUM, VECTOR SCALE.\n"
-               "\n\033[1mOptions:\033[0m\n"
-               "\t-s [SIZE]             Size of the vectors in bytes (8MiB by "
-               "default).\n"
-               "\t-i [NB_ITER]          Number of iterations to perform (10 by "
-               "default).\n"
-               "\t-e [ERROR_TOLERANCE]  Maximum error tolerance (1e-15 by "
-               "default).\n"
-               "\t-v                    Prints the version number.\n"
-               "\t-h                    Prints this help.\n\n",
-               argv[0]);
+            print_help(argv[0]);
             exit(EXIT_SUCCESS);
          }
          case 'v': {
-            printf("\033[1mMini ARM SVE benchmarks - v0.1\n");
+            printf("\033[1mMini Arm SVE benchmarks - v0.2\n");
             exit(EXIT_SUCCESS);
          }
          default: {
-            log_error("unknown option %s. See help for the available options.");
+            log_error("unknown option `%s`. "
+                      "See help for the available options.");
             exit(EXIT_FAILURE);
          }
       }
@@ -147,44 +157,50 @@ int config_init(config_t *config, int argc, char *argv[argc + 1])
    return 0;
 }
 
-int config_print(config_t *config)
+int config_print(const config_t *config)
 {
-   char *bench_kind = bench_kind_to_string(config->benchmark_kind);
-   float readable_size = config->nb_bytes;
-   char *readable_unit = "B";
-   if (config->nb_bytes > 1e9) {
+   float readable_size;
+   char *readable_unit;
+   if (config->nb_bytes > ONE_GIB) {
       readable_size /= ONE_GIB;
       readable_unit = "GiB";
    }
-   else if (config->nb_bytes > 1e6) {
+   else if (config->nb_bytes > ONE_MIB) {
       readable_size /= ONE_MIB;
       readable_unit = "MiB";
    }
-   else if (config->nb_bytes > 1e3) {
+   else if (config->nb_bytes > ONE_KIB) {
       readable_size /= ONE_KIB;
       readable_unit = "KiB";
    }
+   else {
+      readable_size = config->nb_bytes;
+      readable_unit = "B";
+   }
 
-   log_info("running `%s` benchmark with vectors of size %.2lf %s and %zu "
-            "iterations.",
-            bench_kind, readable_size, readable_unit, config->nb_iterations);
+   char *bench_kind = bench_kind_to_string(config->benchmark_kind);
+   log_info("running `%s` benchmark with vectors of size %.2lf %s, "
+            "%zu repetitions and error tolerance of %e.",
+            bench_kind, readable_size, readable_unit, config->nb_repetitions,
+            config->error_tolerance);
    return 0;
 }
 
-int config_result(config_t *config)
+int config_result(const config_t *config)
 {
    if (config->passed) {
       printf("\033[1;32m`%s` benchmark passed!\033[0m\n"
-             "  Reference latency: %.9lfs\n"
-             "   Assembly latency: %.9lfs\n"
-             "Hand-written SVE kernel speedup: %.3lfx\n",
-             bench_kind_to_string(config->benchmark_kind), config->ref_latency,
-             config->asm_latency, config->speedup);
+             "  Compiler latency: %.3lfns\n"
+             "  Assembly latency: %.3lfns\n"
+             "Hand-written assembly speedup: %.3lfx\n",
+             bench_kind_to_string(config->benchmark_kind),
+             config->compiler_latency, config->assembly_latency,
+             config->speedup);
    }
    else {
-      printf("\033[1;31m`%s` benchmark failed:\033[0m\n"
+      printf("\033[1;31m`%s` benchmark failed.\033[0m\n"
              "  Error tolerance: %e\n"
-             "   Error computed: %e\n",
+             "  Error computed:  %e\n",
              bench_kind_to_string(config->benchmark_kind),
              config->error_tolerance, config->computed_error);
    }

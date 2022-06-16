@@ -11,11 +11,11 @@ int main(int argc, char *argv[argc + 1])
    config_t config = {
       .benchmark_kind = BENCH_KIND__MAX,
       .nb_bytes = DEFAULT_SIZE,
-      .nb_iterations = DEFAULT_ITER,
+      .nb_repetitions = DEFAULT_REP,
       .error_tolerance = DEFAULT_ERROR,
       .computed_error = 0.0,
-      .ref_latency = 0.0,
-      .asm_latency = 0.0,
+      .compiler_latency = 0.0,
+      .assembly_latency = 0.0,
       .speedup = 0.0,
       .passed = false,
    };
@@ -36,7 +36,7 @@ int main(int argc, char *argv[argc + 1])
       case BENCH_KIND_DOTPROD:
          driver_dotprod(&config);
          break;
-      case BENCH_KIND_DAXPY:
+      case BENCH_KIND_GAXPY:
          driver_daxpy(&config);
          break;
       case BENCH_KIND_SUM:

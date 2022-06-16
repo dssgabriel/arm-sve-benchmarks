@@ -1,8 +1,8 @@
-CC = armclang
+CC = gcc
 CFLAGS = -Wall -Wextra -g -I include
-AFLAGS = -mcpu=native+sve
+AFLAGS = -march=native -mtune=native
 OFLAGS = -Ofast
-LDFLAGS = -lm -lnuma
+LDFLAGS = -lm
 
 SRCDIR = ./src
 ASMDIR = $(SRCDIR)/asm_kernels
@@ -14,7 +14,7 @@ TARGET = $(BUILDDIR)/arm_bench
 
 build: $(TARGET)
 
-$(TARGET): $(DEPSDIR)/main.o $(DEPSDIR)/config.o $(DEPSDIR)/drivers.o $(DEPSDIR)/kernels.o $(DEPSDIR)/logs.o $(ASMDIR)/*.asm
+$(TARGET): $(DEPSDIR)/main.o $(DEPSDIR)/config.o $(DEPSDIR)/drivers.o $(DEPSDIR)/kernels.o $(DEPSDIR)/logs.o $(ASMDIR)/*.S
 	$(CC) $(AFLAGS) $(CFLAGS) $(OFLAGS) $^ -o $@ $(LDFLAGS)
 
 $(DEPSDIR)/%.o: $(SRCDIR)/%.c
