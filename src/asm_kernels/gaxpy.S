@@ -16,7 +16,7 @@ assembly_gaxpy:
 .loop:
     ld1d    z1.d, p0/z, [x_ptr, x4, lsl #3]
     ld1d    z2.d, p0/z, [y_ptr, x4, lsl #3]
-    fmla    z2.d, z0.d, z1.d
+    fmla    z2.d, p0/m, z0.d, z1.d
     st1d    z2.d, p0, [y_ptr, x4, lsl #3]
     add     x4, x4, x5
     whilelo p0.d, x4, len

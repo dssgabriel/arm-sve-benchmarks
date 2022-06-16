@@ -17,7 +17,7 @@ assembly_dotprod:
 .loop:
     ld1d    z1.d, p0/z, [x_ptr, x4, lsl #3]
     ld1d    z2.d, p0/z, [y_ptr, x4, lsl #3]
-    fmla    z0.d, z1.d, z2.d
+    fmla    z0.d, p0/m, z1.d, z2.d
     add     x4, x4, x5
     whilelo p0.d, x4, len
     b.mi    .loop
