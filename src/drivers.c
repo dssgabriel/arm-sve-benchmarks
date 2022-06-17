@@ -295,7 +295,7 @@ int driver_vec_sum(config_t *config)
 
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->compiler_latency; ++i) {
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
       assembly_vec_sum(x.assembly_vec, y.assembly_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
@@ -335,7 +335,7 @@ int driver_vec_scale(config_t *config)
 
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-   for (size_t i = 0; i < config->compiler_latency; ++i) {
+   for (size_t i = 0; i < config->nb_repetitions; ++i) {
       assembly_vec_scale(k, x.assembly_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
