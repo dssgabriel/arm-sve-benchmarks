@@ -5,7 +5,7 @@
 
 void log_error(const char *fmt, ...)
 {
-   printf("\033[1;31m[ERROR]:   \033[0m");
+   printf("\033[1;31m[ERROR]: \033[0m");
 
    va_list ap;
    va_start(ap, fmt);
@@ -27,7 +27,7 @@ void log_warn(const char *fmt, ...)
 
 void log_info(const char *fmt, ...)
 {
-   printf("\033[1;36m[INFO]:    \033[0m");
+   printf("\033[1;36m[INFO]: \033[0m");
 
    va_list ap;
    va_start(ap, fmt);

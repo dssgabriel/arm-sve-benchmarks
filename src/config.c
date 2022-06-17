@@ -176,7 +176,7 @@ int config_print(const config_t *config)
 
    char *bench_kind = bench_kind_to_string(config->benchmark_kind);
    log_info("running `%s` benchmark with vectors of size %.2lf %s, "
-            "%zu repetitions and error tolerance of %e.",
+            "%zu repetitions and error tolerance of %.0e.",
             bench_kind, readable_size, readable_unit, config->nb_repetitions,
             config->error_tolerance);
    return 0;
@@ -195,8 +195,8 @@ int config_result(const config_t *config)
    }
    else {
       printf("\033[1;31m`%s` benchmark failed.\033[0m\n"
-             "  Error tolerance: %e\n"
-             "  Error computed:  %e\n",
+             "  Error tolerance: %.0e\n"
+             "  Error computed:  %.0e\n",
              bench_kind_to_string(config->benchmark_kind),
              config->error_tolerance, config->computed_error);
    }
