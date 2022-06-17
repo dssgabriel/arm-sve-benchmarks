@@ -12,7 +12,7 @@ inline double compute_avg_latency(const struct timespec start,
                                   const struct timespec end,
                                   const size_t nb_repetitions)
 {
-   return (double)((end.tv_sec - start.tv_sec) +
+   return (double)((double)((end.tv_sec - start.tv_sec) * 1e9) +
                    (end.tv_nsec - start.tv_nsec)) /
           (double)(nb_repetitions);
 }
