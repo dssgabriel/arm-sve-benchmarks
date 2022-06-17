@@ -2,9 +2,9 @@
     .global assembly_init
     .type assembly_init, %function
 
+    k       .req d0
     x_ptr   .req x0
     len     .req x1
-    k       .req d0
 
 assembly_init:
     cbz     len, .end
