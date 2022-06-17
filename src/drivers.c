@@ -16,6 +16,11 @@ typedef struct vectors_s {
    size_t len;
 } vectors_t;
 
+double rand_double(const double min, const double max)
+{
+   return min + ((double)(rand()) / (double)(RAND_MAX) / (max - min));
+}
+
 vectors_t init_vectors(const size_t size, const bool mode)
 {
    vectors_t vecs = {
@@ -31,7 +36,7 @@ vectors_t init_vectors(const size_t size, const bool mode)
    double rand_val = 0.0;
    for (size_t i = 0; i < vecs.len; ++i) {
       if (mode) {
-         rand_val = ((double)(rand() % RAND_MAX));
+         rand_val = rand_double(-1.0, 1.0);
       }
       vecs.compiler_vec[i] = rand_val;
       vecs.assembly_vec[i] = rand_val;
@@ -72,7 +77,7 @@ int driver_init(config_t *config)
 {
    srand(0);
    vectors_t x = init_vectors(config->nb_bytes, false);
-   const double k = (double)(rand() % RAND_MAX);
+   const double k = rand_double(-1.0, 1.0);
    struct timespec start, end;
 
    // Run compiler benchmark
@@ -234,7 +239,7 @@ int driver_dotprod(config_t *config)
 int driver_gaxpy(config_t *config)
 {
    srand(0);
-   const double a = (double)(rand() % RAND_MAX);
+   const double a = rand_double(-1.0, 1.0);
    vectors_t x = init_vectors(config->nb_bytes, true);
    vectors_t y = init_vectors(config->nb_bytes, true);
    struct timespec start, end;
@@ -315,7 +320,7 @@ int driver_vec_sum(config_t *config)
 int driver_vec_scale(config_t *config)
 {
    srand(0);
-   const double k = (double)(rand() % RAND_MAX);
+   const double k = rand_double(-1.0, 1.0);
    vectors_t x = init_vectors(config->nb_bytes, true);
    struct timespec start, end;
 
