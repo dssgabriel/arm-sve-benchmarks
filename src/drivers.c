@@ -4,6 +4,7 @@
 #include "consts.h"
 #include "kernels.h"
 #include "logs.h"
+#include "utils.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -15,11 +16,6 @@ typedef struct vectors_s {
    double *assembly_vec;
    size_t len;
 } vectors_t;
-
-inline double rand_double(const double min, const double max)
-{
-   return min + ((double)(rand()) / (double)(RAND_MAX) / (max - min));
-}
 
 vectors_t init_vectors(const size_t size, const bool mode)
 {
@@ -53,24 +49,6 @@ void destroy_vectors(vectors_t *vecs)
    }
    free(vecs->compiler_vec);
    free(vecs->assembly_vec);
-}
-
-inline double compute_avg_latency(const struct timespec start,
-                                  const struct timespec end,
-                                  const size_t nb_repetitions)
-{
-   return ((end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e3) /
-          (double)(nb_repetitions);
-}
-
-double compute_error(const double *compiler, const double *assembly,
-                     const size_t len)
-{
-   double err = 0.0;
-   for (size_t i = 0; i < len; ++i) {
-      err += fabs((compiler[i] - assembly[i]) / compiler[i]);
-   }
-   return err / (double)(len);
 }
 
 int driver_init(config_t *config)

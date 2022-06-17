@@ -14,12 +14,12 @@ TARGET = $(BUILDDIR)/arm_bench
 
 build: $(TARGET)
 
-$(TARGET): $(DEPSDIR)/main.o $(DEPSDIR)/config.o $(DEPSDIR)/drivers.o $(DEPSDIR)/kernels.o $(DEPSDIR)/logs.o $(ASMDIR)/*.S
+$(TARGET): $(DEPSDIR)/main.o $(DEPSDIR)/config.o $(DEPSDIR)/drivers.o $(DEPSDIR)/kernels.o $(DEPSDIR)/logs.o $(DEPSDIR)/utils.o $(ASMDIR)/*.S
 	$(CC) $(AFLAGS) $(CFLAGS) $(OFLAGS) $^ -o $@ $(LDFLAGS)
 
 $(DEPSDIR)/%.o: $(SRCDIR)/%.c
 	@mkdir -p $(DEPSDIR)
-	$(CC) $(AFLAGS) $(CFLAGS) $(OFLAGS) $(BENCH) -c $< -o $@
+	$(CC) $(AFLAGS) $(CFLAGS) $(OFLAGS) -c $< -o $@
 
 clean:
 	@rm -Rf $(BUILDDIR)
