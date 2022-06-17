@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g -I include -W-no-vla-parameter
+CFLAGS = -Wall -Wextra -g -I include -Wno-vla-parameter
 AFLAGS = -march=native -mtune=native
 OFLAGS = -Ofast
 LDFLAGS = -lm
