@@ -2,25 +2,25 @@
     .global assembly_gaxpy
     .type assembly_gaxpy, %function
 
+    a       .req d0
     x_ptr   .req x0
     y_ptr   .req x1
-    z_ptr   .req x2
-    a       .req d0
-    len     .req x3
+    len     .req x2
 
 assembly_gaxpy:
     cbz     len, .end
-    mov     z0.d, d0
-    mov     x4, xzr
-    cntd    x5
-    whilelo p0.d, x5, len
+    cntd    x4
+    mov     z0.d, a
+    mov     x3, xzr
+    whilelo p0.d, x3, len
+    ptrue   p1.d
 .loop:
-    ld1d    z1.d, p0/z, [x_ptr, x4, lsl #3]
-    ld1d    z2.d, p0/z, [y_ptr, x4, lsl #3]
-    fmad    z1.d, p0/m, z0.d, z2.d
-    st1d    z2.d, p0, [z_ptr, x4, lsl #3]
-    add     x4, x4, x5
-    whilelo p0.d, x4, len
+    ld1d    z1.d, p0/z, [x_ptr, x3, lsl #3]
+    ld1d    z2.d, p0/z, [y_ptr, x3, lsl #3]
+    fmad    z1.d, p1/m, z0.d, z2.d
+    st1d    z1.d, p0, [y_ptr, x3, lsl #3]
+    add     x3, x3, x4
+    whilelo p0.d, x3, len
     b.mi    .loop
 .end:
     ret

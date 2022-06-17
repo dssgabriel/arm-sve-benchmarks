@@ -247,13 +247,12 @@ int driver_gaxpy(config_t *config)
    const double a = (double)(rand() % RAND_MAX);
    vectors_t x = init_vectors(config->nb_bytes);
    vectors_t y = init_vectors(config->nb_bytes);
-   vectors_t z = init_vectors(config->nb_bytes);
    struct timespec start, end;
 
    // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
    for (size_t i = 0; i < config->nb_repetitions; ++i) {
-      compiler_gaxpy(x.compiler_vec, y.compiler_vec, z.compiler_vec, a, x.len);
+      compiler_gaxpy(a, x.compiler_vec, y.compiler_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
    config->compiler_latency =
@@ -262,7 +261,7 @@ int driver_gaxpy(config_t *config)
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
    for (size_t i = 0; i < config->compiler_latency; ++i) {
-      assembly_gaxpy(x.assembly_vec, y.assembly_vec, z.assembly_vec, a, x.len);
+      assembly_gaxpy(a, x.assembly_vec, y.assembly_vec, x.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
    config->assembly_latency =
@@ -274,7 +273,7 @@ int driver_gaxpy(config_t *config)
    // Compute error
    for (size_t i = 0; i < config->nb_repetitions; ++i) {
       config->computed_error +=
-         fabs((z.compiler_vec[i] - z.assembly_vec[i]) / z.compiler_vec[i]);
+         fabs((x.compiler_vec[i] - x.assembly_vec[i]) / x.compiler_vec[i]);
    }
    config->computed_error /= config->nb_repetitions;
    if (config->computed_error > config->error_tolerance) {
