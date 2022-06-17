@@ -16,13 +16,14 @@ typedef struct vectors_s {
    size_t len;
 } vectors_t;
 
-double rand_double(const double min, const double max)
+inline double rand_double(const double min, const double max)
 {
    return min + ((double)(rand()) / (double)(RAND_MAX) / (max - min));
 }
 
 vectors_t init_vectors(const size_t size, const bool mode)
 {
+   srand(0);
    vectors_t vecs = {
       .compiler_vec = aligned_alloc(ALIGNMENT, size),
       .assembly_vec = aligned_alloc(ALIGNMENT, size),
@@ -54,11 +55,11 @@ void destroy_vectors(vectors_t *vecs)
    free(vecs->assembly_vec);
 }
 
-double compute_avg_latency(const struct timespec start,
-                           const struct timespec end,
-                           const size_t nb_repetitions)
+inline double compute_avg_latency(const struct timespec start,
+                                  const struct timespec end,
+                                  const size_t nb_repetitions)
 {
-   return ((end.tv_nsec - start.tv_nsec) / 1e3 + (end.tv_sec - start.tv_sec)) /
+   return ((end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e3) /
           (double)(nb_repetitions);
 }
 
@@ -74,7 +75,6 @@ double compute_error(const double *compiler, const double *assembly,
 
 int driver_init(config_t *config)
 {
-   srand(0);
    vectors_t x = init_vectors(config->nb_bytes, false);
    const double k = rand_double(-1.0, 1.0);
    struct timespec start, end;
@@ -113,7 +113,6 @@ int driver_init(config_t *config)
 
 int driver_copy(config_t *config)
 {
-   srand(0);
    vectors_t x = init_vectors(config->nb_bytes, false);
    vectors_t y = init_vectors(config->nb_bytes, true);
    struct timespec start, end;
@@ -153,7 +152,6 @@ int driver_copy(config_t *config)
 
 int driver_reduc(config_t *config)
 {
-   srand(0);
    vectors_t x = init_vectors(config->nb_bytes, true);
    double compiler_results[config->nb_repetitions];
    double assembly_results[config->nb_repetitions];
@@ -193,7 +191,6 @@ int driver_reduc(config_t *config)
 
 int driver_dotprod(config_t *config)
 {
-   srand(0);
    vectors_t x = init_vectors(config->nb_bytes, true);
    vectors_t y = init_vectors(config->nb_bytes, true);
    double compiler_results[config->nb_repetitions];
@@ -237,10 +234,9 @@ int driver_dotprod(config_t *config)
 
 int driver_gaxpy(config_t *config)
 {
-   srand(0);
-   const double a = rand_double(-1.0, 1.0);
    vectors_t x = init_vectors(config->nb_bytes, true);
    vectors_t y = init_vectors(config->nb_bytes, true);
+   const double a = rand_double(-1.0, 1.0);
    struct timespec start, end;
 
    // Run compiler benchmark
@@ -278,7 +274,6 @@ int driver_gaxpy(config_t *config)
 
 int driver_vec_sum(config_t *config)
 {
-   srand(0);
    vectors_t x = init_vectors(config->nb_bytes, true);
    vectors_t y = init_vectors(config->nb_bytes, true);
    struct timespec start, end;
@@ -318,9 +313,8 @@ int driver_vec_sum(config_t *config)
 
 int driver_vec_scale(config_t *config)
 {
-   srand(0);
-   const double k = rand_double(-1.0, 1.0);
    vectors_t x = init_vectors(config->nb_bytes, true);
+   const double k = rand_double(-1.0, 1.0);
    struct timespec start, end;
 
    // Run compiler benchmark
