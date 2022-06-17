@@ -50,8 +50,8 @@ double compute_avg_latency(const struct timespec start,
                            const struct timespec end,
                            const size_t nb_repetitions)
 {
-   return ((end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)) /
-          nb_repetitions;
+   return (((end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)) / 1e3) /
+          (double)nb_repetitions;
 }
 
 int driver_init(config_t *config)
@@ -285,7 +285,6 @@ int driver_gaxpy(config_t *config)
 
    destroy_vectors(&x);
    destroy_vectors(&y);
-   destroy_vectors(&z);
    return 0;
 }
 
