@@ -242,7 +242,7 @@ int driver_gaxpy(config_t *config)
    // Run compiler benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
    for (size_t i = 0; i < config->nb_repetitions; ++i) {
-      compiler_gaxpy(a, x.compiler_vec, y.compiler_vec, x.len);
+      compiler_gaxpy(a, x.compiler_vec, y.compiler_vec, y.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
    config->compiler_latency =
@@ -251,7 +251,7 @@ int driver_gaxpy(config_t *config)
    // Run assembly benchmark
    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
    for (size_t i = 0; i < config->compiler_latency; ++i) {
-      assembly_gaxpy(a, x.assembly_vec, y.assembly_vec, x.len);
+      assembly_gaxpy(a, x.assembly_vec, y.assembly_vec, y.len);
    }
    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
    config->assembly_latency =
