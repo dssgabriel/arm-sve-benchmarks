@@ -58,8 +58,7 @@ double compute_avg_latency(const struct timespec start,
                            const struct timespec end,
                            const size_t nb_repetitions)
 {
-   return (((end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)) /
-           1e3) /
+   return ((end.tv_nsec - start.tv_nsec) / 1e3 + (end.tv_sec - start.tv_sec)) /
           (double)(nb_repetitions);
 }
 
