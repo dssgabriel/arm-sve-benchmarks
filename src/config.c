@@ -186,8 +186,8 @@ int config_result(const config_t *config)
 {
    if (config->passed) {
       printf("\033[1;32m`%s` benchmark passed!\033[0m\n"
-             "  Compiler latency: %.3lfµs\n"
-             "  Assembly latency: %.3lfµs\n"
+             "  Compiler latency: %.0lfns\n"
+             "  Assembly latency: %.0lfns\n"
              "Hand-written assembly speedup: %.3lfx\n",
              bench_kind_to_string(config->benchmark_kind),
              config->compiler_latency, config->assembly_latency,
