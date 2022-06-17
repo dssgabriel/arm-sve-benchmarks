@@ -8,7 +8,7 @@
 
 assembly_vec_scale:
     cbz     len, .end
-    dup     z0.d, k
+    mov     z0.d, k
     mov	    x2, xzr
     cntd    x3
     whilelo p0.d, x2, len
