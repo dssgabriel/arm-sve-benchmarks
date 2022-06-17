@@ -14,7 +14,7 @@ inline double compute_avg_latency(const struct timespec start,
 {
    return (double)((double)((end.tv_sec - start.tv_sec) * 1e9) +
                    (end.tv_nsec - start.tv_nsec)) /
-          (double)(nb_repetitions);
+          (double)(nb_repetitions) / 1e3;
 }
 
 double compute_error(const double *compiler, const double *assembly,
